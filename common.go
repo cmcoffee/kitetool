@@ -104,7 +104,9 @@ func (d database) Set(table string, key, value interface{}) {
 
 func (d database) Get(table string, key, output interface{}) bool {
 	found, err := d.db.Get(table, key, output)
+	//if err != nil && !strings.Contains(err.Error(), "no") {
 	errchk(err)
+	//}
 	return found
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/cmcoffee/go-kvlite"
 	"github.com/cmcoffee/go-nfo"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -35,8 +36,8 @@ const (
 
 const (
 	APPNAME       = "kitetool"
-	RELEASE_YEAR  = 19
-	RELEASE_MONTH = 12
+	RELEASE_YEAR  = 20
+	RELEASE_MONTH = 2
 	RELEASE_MINOR = 0
 )
 
@@ -46,7 +47,6 @@ func init() {
 	for i := 0; i < MAX_CONNECTIONS; i++ {
 		api_call_bank <- struct{}{}
 	}
-
 	var err error
 	global.cache.db, err = kvlite.MemStore()
 	errchk(err)
@@ -81,8 +81,13 @@ func main() {
 
 	global.db.Get(APPNAME, "config", &global.config)
 
-	// Load API Configuration
-	setup(*setup_requested)
+	request_help := false
+
+	for _, x := range flag.Args() {
+		if strings.Contains(strings.ToLower(x), "--help") || strings.Contains(strings.ToLower(x), "-h") {
+			request_help = true
+		}
+	}
 
 	if len(os.Args) < 2 {
 		Stderr(header)
@@ -90,6 +95,11 @@ func main() {
 		global.menu.Show()
 		os.Exit(0)
 	} else {
+		if !request_help {
+			// Load API Configuration
+			setup(*setup_requested)
+		}
+
 		if err = global.menu.Select(flag.Args()); err != nil {
 			Stderr(err.Error())
 			flag.Usage()

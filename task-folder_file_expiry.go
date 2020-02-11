@@ -229,7 +229,20 @@ func BulkFileExpire(flag *task) (err error) {
 	}
 
 	if (!flag.IsSet("folder-expiry-days") || !flag.IsSet("file-expiry-days")) && !flag.IsSet("apply-file-expiry") {
-		return Error("You must specify either: --folder-expiry-days and --file-expiry-days OR --apply-file-expiry")
+		return Error("You must specify either: (--folder-expiry-days AND --file-expiry-days) OR --apply-file-expiry")
+	}
+
+	if !flag.IsSet("apply-file-expiry") {
+		if !flag.IsSet("folder-expiry-days") {
+			return Error("You must specify --folder-expiry-days if --file-expiry-days is set.")
+		}
+		if !flag.IsSet("file-expiry-days") {
+			return Error("You must specify --file-expiry-days if --folder-expiry-days is set.")
+		}
+	} else {
+		if flag.IsSet("folder-expiry-days") || flag.IsSet("file-expiry-days") {
+			return Error("--apply-file-expiry is mutually exclusive from --folder-expiry-days and --file-expiry-days.")
+		}
 	}
 
 	if flag.IsSet("only-extend") && flag.IsSet("only-reduce") {
@@ -323,16 +336,11 @@ func BulkFileExpire(flag *task) (err error) {
 					nfo.Err("[%s]: %s contains a nested folder, folders should be top-level only, skipping folder.", b.KWSession, folder_name)
 					continue
 				}
-				folder_id, err := b.FindFolder(folder_name)
+				f, err := b.FindFolder(folder_name)
 				if err != nil {
 					if RestError(err, ERR_ACCESS_USER) || err == ErrNotFound {
 						return
 					}
-					nfo.Err("[%s]: %s, skipping folder.", folder_name, err.Error())
-					continue
-				}
-				f, err := b.FolderInfo(folder_id)
-				if err != nil {
 					nfo.Err("[%s]: %s, skipping folder.", folder_name, err.Error())
 					continue
 				}

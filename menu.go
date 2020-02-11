@@ -80,6 +80,7 @@ func (m *menu) Select(args []string) (err error) {
 		if x, ok := m.entries[args[0]]; ok {
 			x.args = args[1:]
 			m.mutex.RUnlock()
+
 			if err := x.exec(x); err != nil {
 				if err != eflag.ErrHelp {
 					Stderr("[ERROR] %s\n\n", err.Error())

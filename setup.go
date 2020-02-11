@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cmcoffee/go-ask"
+	"github.com/cmcoffee/go-nfo"
 	"strings"
 )
 
@@ -33,19 +33,24 @@ func (c Config) configured() bool {
 // Configuration for proxy settings.
 func (c *Config) setup_proxy() {
 	for {
-		in := ask.ForInput(fmt.Sprintf(`
+		in := nfo.NeedAnswer(fmt.Sprintf(`
 --- Proxy Configuration, Current Setting: %s
 
     [1] Set Proxy URI.
     [2] Disable Proxy, Use Direct Connections.
 
-(selection or 'b' to go back): `, c.ProxyURI))
+(selection or 'b' to go back): `, c.ProxyURI), nfo.Input)
 
 		switch in {
 		case "1":
-			proxy := ask.ForInput(`
+			proxy := nfo.Input(`
 # Proxy URI is typically in format of http://proxy_server.domain.com:3128
 --> Proxy URI: `)
+			if proxy == NONE {
+				c.ProxyURI = no_proxy
+				c.Tested = false
+				continue
+			}
 			if !strings.Contains(proxy, "http") {
 				Printf("\n*** Invalid URI '%s', URI should be in format of http://proxy_server.domain.com:3128.", proxy)
 				continue
@@ -112,7 +117,7 @@ func setup(setup_requested bool) {
 	}
 
 	for {
-		in := ask.ForInput(fmt.Sprintf(`
+		in := nfo.NeedAnswer(fmt.Sprintf(`
 --- %s Configuration ---
 
   [1] kiteworks Host:   %s
@@ -125,34 +130,34 @@ func setup(setup_requested bool) {
   [8] Proxy Server:     %s
 
 (selection or 'q' to save & exit): `, APPNAME, show_var(cfg.Server), show_var(cfg.ClientID), show_var(hide_var(cfg.ClientSecret)),
-			show_var(hide_var(cfg.Signature)), show_var(cfg.Admin), show_var(cfg.RedirectURI), cfg.SSLVerify, cfg.ProxyURI))
+			show_var(hide_var(cfg.Signature)), show_var(cfg.Admin), show_var(cfg.RedirectURI), cfg.SSLVerify, cfg.ProxyURI), nfo.Input)
 		switch in {
 		case "1":
-			cfg.Server = ask.ForInput(`
+			cfg.Server = nfo.NeedAnswer(`
 # Please provide the kiteworks appliance hostname. (ie.. kiteworks.domain.com)
---> kitworks Hostname: `)
+--> kitworks Hostname: `, nfo.Input)
 			cfg.Tested = false
 		case "2":
-			cfg.ClientID = ask.ForInput(`
---> Client Application ID: `)
+			cfg.ClientID = nfo.NeedAnswer(`
+--> Client Application ID: `, nfo.Input)
 			cfg.Tested = false
 		case "3":
-			cfg.ClientSecret = ask.ForInput(`
---> Client Secret Key: `)
+			cfg.ClientSecret = nfo.NeedAnswer(`
+--> Client Secret Key: `, nfo.Input)
 			cfg.Tested = false
 		case "4":
-			cfg.Signature = ask.ForInput(`
---> Signature Secret: `)
+			cfg.Signature = nfo.NeedAnswer(`
+--> Signature Secret: `, nfo.Input)
 			cfg.Tested = false
 		case "5":
-			cfg.Admin = ask.ForInput(`
+			cfg.Admin = nfo.NeedAnswer(`
 # Please provide the email of a system admin within the kiteworks appliance.
---> Set System Admin Login: `)
+--> Set System Admin Login: `, nfo.Input)
 			cfg.Tested = false
 		case "6":
-			cfg.RedirectURI = ask.ForInput(`
+			cfg.RedirectURI = nfo.NeedAnswer(`
 # This simply needs to match the API configuration in kiteworks.
---> Redirect URI: `)
+--> Redirect URI: `, nfo.Input)
 		case "7":
 			if cfg.SSLVerify {
 				cfg.SSLVerify = false
@@ -167,7 +172,7 @@ func setup(setup_requested bool) {
 				Exit(0)
 			}
 			if !cfg.Tested {
-				if ask.ToConfirm("\nWould you like validate settings with a quick test?") {
+				if nfo.Confirm("\nWould you like validate settings with a quick test?") {
 					if err := test_api(); err != nil {
 						Err(err)
 						continue

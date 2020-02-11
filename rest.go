@@ -166,13 +166,13 @@ func (s KWSession) FolderInfo(folder_id int) (output KiteFolder, err error) {
 }
 
 // Returns the folder id of folder, can be specified as TopFolder/Nested or TopFolder\Nested.
-func (s KWSession) FindFolder(remote_folder string) (id int, err error) {
+func (s KWSession) FindFolder(remote_folder string) (folder KiteFolder, err error) {
 
-	id = -1
+	id := -1
 
 	base_folder_id, err := s.MyBaseDirID()
 	if err != nil {
-		return -1, err
+		return
 	}
 
 	folder_names := strings.Split(remote_folder, "\\")
@@ -205,23 +205,26 @@ func (s KWSession) FindFolder(remote_folder string) (id int, err error) {
 	for _, e := range folders {
 		if strings.ToLower(e.Name) == strings.ToLower(folder_names[0]) {
 			id = e.ID
+			folder = e
 			break
 		}
 	}
 
 	if id < 0 {
-		return -1, ErrNotFound
+		err = ErrNotFound
+		return
 	}
 
 	for shift_name() {
 		found := false
 		nested, err := s.ListFolders(id)
 		if err != nil {
-			return -1, err
+			break
 		}
 
 		for _, elem := range nested {
 			if strings.ToLower(elem.Name) == strings.ToLower(folder_names[0]) {
+				folder = elem
 				id = elem.ID
 				found = true
 				break
@@ -229,9 +232,30 @@ func (s KWSession) FindFolder(remote_folder string) (id int, err error) {
 		}
 
 		if !found {
-			return -1, ErrNotFound
+			err = ErrNotFound
+			break
 		}
 	}
 
 	return
+}
+
+func (s KWSession) SetNotifications(folder_id int, includeNested, fileAdded, commentAdded bool) error {
+	var fileAddedInt, commentAddedInt int
+
+	if fileAdded {
+		fileAddedInt = 1
+	}
+
+	if commentAdded {
+		commentAddedInt = 1
+	}
+
+	req := APIRequest{
+		Method: "PUT",
+		Path:   SetPath("/rest/folders/%d/actions/setNotifications", folder_id),
+		Params: SetParams(PostForm{"fileAdded": fileAddedInt, "commentAdded": commentAddedInt}, Query{"includeNested": includeNested}),
+	}
+
+	return s.Call(req)
 }
